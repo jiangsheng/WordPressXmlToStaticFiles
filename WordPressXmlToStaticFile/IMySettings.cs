@@ -12,8 +12,14 @@ namespace WordPressXmlToStaticFile
         string InputFile { get; set; }
         string OutputFolder{ get; set; }
         string PanDocPath { get; set; }
+        [Option(DefaultValue = "True")]
         bool CreateYearFolders { get; set; }
+        [Option(DefaultValue = "True")]
         bool CreateMonthFolders { get; set; }
+
+        [Option(DefaultValue = "True")]
+        bool CreateDayFolders { get; set; }
+        
 
         [Option(DefaultValue = "1")]
         int OutputFormat { get; set; }

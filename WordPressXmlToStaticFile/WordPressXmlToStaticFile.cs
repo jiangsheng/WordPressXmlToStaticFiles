@@ -72,7 +72,7 @@ namespace WordPressXmlToStaticFile
                     if (guidElement.ChildNodes.Count == 1)
                     {
                         var postUrl = new Uri(guidElement.ChildNodes[0].Value);
-                        fileName = Path.GetFileName(postUrl.AbsolutePath);
+                        fileName = Uri.UnescapeDataString(Path.GetFileName(postUrl.AbsolutePath));
                         
                     }
                 }
@@ -93,6 +93,10 @@ namespace WordPressXmlToStaticFile
                     if (Settings.CreateMonthFolders)
                     {
                         targetPath = Path.Combine(targetPath, postDate.Value.Month.ToString());
+                    }
+                    if (Settings.CreateDayFolders)
+                    {
+                        targetPath = Path.Combine(targetPath, postDate.Value.Day.ToString());
                     }
                 }
                 if(!Directory.Exists(targetPath))

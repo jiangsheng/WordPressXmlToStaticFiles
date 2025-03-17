@@ -22,8 +22,9 @@ namespace WordPressXmlToStaticFile
             settings.InputFile=PromptForTextValue("Enter Path for the XML file exported by WordPress (Press Enter for default):[{0}]", settings.InputFile);
             settings.OutputFolder= PromptForTextValue("Enter Path for the output folder(Press Enter for default):[{0}]", settings.OutputFolder);
             settings.PanDocPath = PromptForTextValue("Enter Path for the pandoc executable (maybe c:\\Program Files\\Pandoc\\, Press Enter for default):[{0}]", settings.PanDocPath);
-            settings.CreateYearFolders = PromptForBooleanValue("Create folders for years?[y/n](Press Enter for default):[{0}]", true);
-            settings.CreateMonthFolders= PromptForBooleanValue("Create folders for months?[y/n](Press Enter for default):[{0}]", true);
+            settings.CreateYearFolders = PromptForBooleanValue("Create folders for years?[y/n](Press Enter for default):[{0}]", settings.CreateYearFolders);
+            settings.CreateMonthFolders= PromptForBooleanValue("Create folders for months?[y/n](Press Enter for default):[{0}]", settings.CreateMonthFolders);
+            settings.CreateDayFolders = PromptForBooleanValue("Create folders for days?[y/n](Press Enter for default):[{0}]", settings.CreateDayFolders);
             settings.OutputFormat = PromptForNumber("Output Format? 1: html, 2: github-favored markdown 3:rst (Press Enter for default):[{0}]", settings.OutputFormat);            PandocEngine pandocEngine = new PandocEngine(settings.PanDocPath);
 
             WordPressXmlToStaticFile wpXmlToStaticFile = new WordPressXmlToStaticFile(settings, pandocEngine);
