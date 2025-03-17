@@ -65,17 +65,23 @@ namespace WordPressXmlToStaticFile
                         postDate = test;
                     }
                 }
-                var guidElement = post.SelectSingleNode("guid");
+                var linkElement = post.SelectSingleNode("link");
                 string fileName = string.Empty;
-                if (guidElement != null)
+                if (linkElement != null)
                 {
-                    if (guidElement.ChildNodes.Count == 1)
+                    if (linkElement.ChildNodes.Count == 1)
                     {
-                        var postUrl = new Uri(guidElement.ChildNodes[0].Value);
-                        fileName = Uri.UnescapeDataString(Path.GetFileName(postUrl.AbsolutePath));
+                        var postUrl = linkElement.ChildNodes[0].Value;
+                        if (postUrl.EndsWith("/"))
+                        {
+                            postUrl = postUrl.Substring(0, postUrl.Length - 1);
+                        }
+                        var postUri = new Uri(postUrl);
+                        fileName = Uri.UnescapeDataString(Path.GetFileName(postUri.AbsolutePath));
                         
                     }
                 }
+                Debug.Assert(!string.IsNullOrWhiteSpace(fileName)); 
                 Debug.WriteLine(string.Format("Processing post: {0}", title));
                 if(postDate.HasValue)
                     Debug.WriteLine(string.Format("published on : {0}", postDate));
