@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Config.Net" Version="5.2.1" />
+    <PackageReference Include="Goblinfactory.Konsole" Version="6.2.2" />
+    <PackageReference Include="InternetArchive.NET" Version="6.1.0" />
+    <PackageReference Include="Pandoc" Version="3.1.1" />
+  </ItemGroup>
+
+</Project>

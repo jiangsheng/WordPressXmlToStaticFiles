@@ -2,6 +2,9 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net;
+using System.Net.Mail;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
@@ -18,138 +21,288 @@ namespace WordPressXmlToStaticFile
             Settings = settings;
             PandocEngine = pandocEngine;
         }
-        public async Task Convert()
-        {  
-            XmlDocument xmlDocument = new XmlDocument();
-            xmlDocument.Load(Settings.InputFile);
-            XmlNamespaceManager nsmgr = new XmlNamespaceManager(xmlDocument.NameTable);
-            nsmgr.AddNamespace("wp", "http://wordpress.org/export/1.2/");
-            nsmgr.AddNamespace("content", "http://purl.org/rss/1.0/modules/content/");
-            nsmgr.AddNamespace("excerpt", "http://wordpress.org/export/1.2/excerpt/");
-            nsmgr.AddNamespace("wfw", "http://wellformedweb.org/CommentAPI/");
-            nsmgr.AddNamespace("dc", "http://purl.org/dc/elements/1.1/");
-
-
-            var channel= xmlDocument.SelectSingleNode("/rss/channel");
-            var posts = channel.SelectNodes("item");
-            foreach (XmlNode post in posts)
+        public static string? GetNodeText(XmlNode? xmlNode)
+        {
+            if (xmlNode != null)
             {
-                var postType = post.SelectSingleNode("wp:post_type", nsmgr);
-                if (postType != null)
+                foreach (XmlNode child in xmlNode.ChildNodes)
                 {
-                    if (postType.ChildNodes.Count > 0)
+                    if (child.NodeType == XmlNodeType.Text)
                     {
-                        if (string.Compare(postType.ChildNodes[0].Value, "post") != 0)
-                        {
-                            continue;
-                        }
+                        return child.Value;
                     }
-                    else
-                        continue;
-                }
-                else 
-                    continue;
-
-                XmlCDataSection cDataTitleNode = post.SelectSingleNode("title").ChildNodes[0] as XmlCDataSection;
-                string title = cDataTitleNode.Data;
-                XmlCDataSection cDataContentNode = post.SelectSingleNode("content:encoded", nsmgr).ChildNodes[0] as XmlCDataSection;
-                string content = cDataContentNode.Data;
-                DateTime? postDate=null;
-                var postDateElement= post.SelectSingleNode("wp:post_date", nsmgr);
-                if (postDateElement != null && postDateElement.ChildNodes.Count == 1)
-                {
-                    var postDateString = postDateElement.ChildNodes[0].Value;
-                    DateTime test;
-                    if(DateTime.TryParse(postDateString,out test))
+                    if (child.NodeType == XmlNodeType.CDATA)
                     {
-                        postDate = test;
+                        return ((XmlCDataSection)child).Data;
                     }
-                }
-                var linkElement = post.SelectSingleNode("link");
-                string fileName = string.Empty;
-                if (linkElement != null)
-                {
-                    if (linkElement.ChildNodes.Count == 1)
-                    {
-                        var postUrl = linkElement.ChildNodes[0].Value;
-                        if (postUrl.EndsWith("/"))
-                        {
-                            postUrl = postUrl.Substring(0, postUrl.Length - 1);
-                        }
-                        var postUri = new Uri(postUrl);
-                        fileName = Uri.UnescapeDataString(Path.GetFileName(postUri.AbsolutePath));
-                        
-                    }
-                }
-                Debug.Assert(!string.IsNullOrWhiteSpace(fileName)); 
-                Debug.WriteLine(string.Format("Processing post: {0}", title));
-                if(postDate.HasValue)
-                    Debug.WriteLine(string.Format("published on : {0}", postDate));
-                Debug.WriteLine(string.Format("post content: {0}", content));
-                Debug.WriteLine(string.Format("Save as fileName: {0}", fileName));
-                string resultText = string.Empty;
-                var targetPath = Settings.OutputFolder;
-                if (postDate.HasValue)
-                {
-                    if (Settings.CreateYearFolders)
-                    {
-
-                        targetPath = Path.Combine(targetPath, postDate.Value.Year.ToString());
-                    }
-                    if (Settings.CreateMonthFolders)
-                    {
-                        targetPath = Path.Combine(targetPath, postDate.Value.Month.ToString());
-                    }
-                    if (Settings.CreateDayFolders)
-                    {
-                        targetPath = Path.Combine(targetPath, postDate.Value.Day.ToString());
-                    }
-                }
-                if(!Directory.Exists(targetPath))
-                {
-                    Directory.CreateDirectory(targetPath);
-                }   
-                byte[] encodedText = null;
-                var tempFileName = Path.GetTempFileName();
-                switch (this.Settings.OutputFormat)
-                {
-                    case 1:
-                        targetPath = Path.Combine(targetPath, fileName);
-                        if (!Directory.Exists(targetPath))
-                        {
-                            Directory.CreateDirectory(targetPath);
-                        }
-
-                        targetPath = Path.Combine(targetPath, "index.html");
-                        resultText = string.Format("<!doctype html><html><head><meta charset=\"UTF-8\"<title>{0}</head><body>{1}</body></html>", title, content);
-                        encodedText = Encoding.UTF8.GetBytes(resultText);
-                        File.WriteAllBytes(targetPath,encodedText);
-                        break;
-                    case 2:
-                        targetPath = Path.Combine(targetPath, fileName);
-                        if (!Directory.Exists(targetPath))
-                        {
-                            Directory.CreateDirectory(targetPath);
-                        }
-                        targetPath = Path.Combine(targetPath, "index.md");
-                        File.WriteAllText(tempFileName, content);
-                        await PandocInstance.Convert<HtmlIn, GhMdOut>(tempFileName,targetPath);
-                        File.Delete(tempFileName);
-                        break;
-                    case 3:
-                        targetPath = Path.Combine(targetPath, fileName);
-                        if (!Directory.Exists(targetPath))
-                        {
-                            Directory.CreateDirectory(targetPath);
-                        }
-                        targetPath = Path.Combine(targetPath, "index.rst");
-
-                        File.WriteAllText(tempFileName, content);
-                        await PandocInstance.Convert<HtmlIn, RstOut>(tempFileName, targetPath);
-                        File.Delete(tempFileName);                        
-                        break;
                 }
             }
+            return null;
+        }
+        public static DateTime? GetNodeDateTime(XmlNode? xmlNode)
+        {
+            if (xmlNode == null) return null;
+            var nodeText = GetNodeText(xmlNode);
+            if (nodeText != null)
+            {
+                DateTime dateTime;
+                if (DateTime.TryParse(nodeText, out dateTime))
+                {
+                    return dateTime;
+                }
+            }
+            return null;
+        }
+        public static int? GetNodeInt(XmlNode? xmlNode)
+        {
+            if (xmlNode == null) return null;
+            var nodeText = GetNodeText(xmlNode);
+            if (nodeText != null)
+            {
+                int test;
+                if (int.TryParse(nodeText, out test))
+                {
+                    return test;
+                }
+            }
+            return null;
+        }
+        public async Task Convert()
+        {
+            var outputPath = Settings.OutputFolder;
+            if (!Directory.Exists(outputPath))
+            {
+                Directory.CreateDirectory(outputPath);
+            }
+            if (string.IsNullOrWhiteSpace(Settings.InputFile))
+            {
+                Console.WriteLine("Input file is not specified.");
+                return;
+            }
+            if (!File.Exists(Settings.InputFile))
+            {
+                Console.WriteLine("Input file does not exist.");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(Settings.PanDocPath))
+            {
+                Console.WriteLine("Pandoc path is not specified.");
+                return;
+            }
+            if (!Directory.Exists(Settings.PanDocPath))
+            {
+                Console.WriteLine("Pandoc path does not exist.");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(Settings.OutputFolder))
+            {
+                Console.WriteLine("Output folder is not specified.");
+                return;
+            }
+
+            WordPressXml wordPressXml = WordPressXml.FromFile(Settings.InputFile);
+            if (wordPressXml.Items != null)
+            {
+                Dictionary<string, string> urlReplacement = new Dictionary<string, string>();
+                Dictionary<string, string> downloadQueue= new Dictionary<string, string>();
+                var attachments = wordPressXml.Items.Where(p => p.PostType == "attachment");
+                foreach (var attachment in attachments)
+                {
+                    ParseAttachment(attachment, wordPressXml, Settings, urlReplacement, downloadQueue);
+                }
+                Parallel.ForEach(downloadQueue, keyValuePair =>
+                {
+                    DownloadAttachment(keyValuePair.Key,keyValuePair.Value);
+                });
+
+                var posts= wordPressXml.Items.Where(p=>p.PostType=="post");
+                foreach (var post in posts)
+                {
+                    await WritePost(post, wordPressXml, Settings, PandocEngine);
+                }
+            }
+            else
+            {
+                Console.WriteLine("No items found in the XML file.");
+            }
+        }
+
+        private void DownloadAttachment(string fromUrl, string toFile)
+        {
+            using (WebClient client = new WebClient())
+            {
+                client.DownloadFile(fromUrl, toFile);
+            }
+        }
+        private void ParseAttachment(WordPressItem attachment, WordPressXml wordPressXml, IMySettings settings, 
+            Dictionary<string, string> urlReplacement, Dictionary<string, string> downloadQueue)
+        {
+            Uri attachmentUri=new  Uri(attachment.Link);
+            Uri baseBlogUri= new Uri(wordPressXml.BaseBlogUrl);
+
+            var relativeAttachmentUri = attachmentUri.MakeRelativeUri(baseBlogUri);
+            var mediaFolder=Path.Combine(settings.OutputFolder, "docs\\blogs\\images");
+            if (!Directory.Exists(mediaFolder))
+            {
+                Directory.CreateDirectory(mediaFolder);
+            }
+        }
+
+        private async Task  WritePost(WordPressItem post,
+            WordPressXml wordPressXml, IMySettings settings, PandocEngine pandocEngine)
+        {
+            var slug = post.Link;
+            if (slug.EndsWith("/"))
+            {
+                slug = slug.Substring(0, slug.Length - 1);
+            }
+            var postLinkUri = new Uri(slug);
+            slug = Uri.UnescapeDataString(Path.GetFileName(postLinkUri.AbsolutePath));
+            Debug.Assert(!string.IsNullOrWhiteSpace(slug));
+            Debug.WriteLine(string.Format("Processing post: {0}", post.Title));
+            if (post.PubDate.HasValue)
+                Debug.WriteLine(string.Format("published on : {0}", post.PubDate));
+            Debug.WriteLine(string.Format("post content: {0}", post.Content));
+            Debug.WriteLine(string.Format("slug: {0}", slug));
+            string resultText = string.Empty;
+            var targetPath = Settings.OutputFolder;
+            var targetRedirectPath = Settings.OutputFolder;
+            string? sphinixSourceFolder;
+            string sphinixBuildFolder;
+            if (!string.IsNullOrEmpty(Settings.SphinixBuildFolder))
+                sphinixBuildFolder = Path.Combine(targetPath, Settings.SphinixBuildFolder);
+            else
+                sphinixBuildFolder = targetPath;
+
+            if (!string.IsNullOrEmpty(Settings.SphinixSourceFolder))
+                sphinixSourceFolder = targetPath = Path.Combine(targetPath, Settings.SphinixSourceFolder);
+            else
+                sphinixSourceFolder = targetPath;
+
+
+            if (settings.CreateRedirectForABlog)
+            {
+                targetPath = Path.Combine(targetPath, "blogs");
+            }
+            if (post.PubDate.HasValue)
+            {
+                if (Settings.CreateYearFolders)
+                {
+                    targetPath = Path.Combine(targetPath, post.PubDate.Value.Year.ToString());
+                }
+                if (Settings.CreateMonthFolders)
+                {
+                    targetPath = Path.Combine(targetPath, post.PubDate.Value.Month.ToString());
+                }
+                if (Settings.CreateDayFolders)
+                {
+                    targetPath = Path.Combine(targetPath, post.PubDate.Value.Day.ToString());
+                }
+            }
+            if (!Directory.Exists(targetPath))
+            {
+                Directory.CreateDirectory(targetPath);
+            }
+            byte[]? encodedText = null;
+            string? targetFileName = null;
+            var tempFileName = Path.GetTempFileName();
+            switch (this.Settings.OutputFormat)
+            {
+                case 1:
+                    targetFileName = GetUniqueFileName(targetPath, slug,".html");
+                    resultText = string.Format("<!doctype html><html><head><meta charset=\"UTF-8\"<title>{0}</head><body>{1}</body></html>",
+                        post.Title, post.Content);
+                    encodedText = Encoding.UTF8.GetBytes(resultText);
+                    File.WriteAllBytes(targetPath, encodedText);
+                    break;
+                case 2:
+                    targetFileName = GetUniqueFileName(targetPath, slug, ".md");
+                    File.WriteAllText(tempFileName, post.Content);
+                    await PandocInstance.Convert<HtmlIn, GhMdOut>(tempFileName, targetFileName);
+                    File.Delete(tempFileName);
+                    break;
+                case 3:
+                    targetFileName = GetUniqueFileName(targetPath, slug, ".rst");
+                    if (settings.CreateRedirectForABlog)
+                    {
+                        var redirectFileName = Path.Combine(
+                            settings.OutputFolder
+                            , postLinkUri.LocalPath.Replace('/', '\\').Substring(1) + ".html");
+                        var sourceRelativePath = Path.GetRelativePath(sphinixSourceFolder, targetFileName);
+
+                        var outputFileName = Path.Combine(
+                            sphinixBuildFolder, sourceRelativePath);
+                        outputFileName = Path.ChangeExtension(outputFileName, ".html");
+                        StringBuilder sb = new StringBuilder();
+                        sb.AppendLine("<!doctype html>\r\n<html>\r\n<head>");
+                        var redirectPath = Path.GetRelativePath(redirectFileName, outputFileName);
+                        sb.AppendLine("<meta http-equiv=\"refresh\" content=\"0; url=" + redirectPath.Replace('\\','/') + "\">");
+                        sb.AppendLine("</head>\r\n<body>\t\r\n</body>\r\n</html>");
+                        encodedText = Encoding.UTF8.GetBytes(sb.ToString());
+                        var redirectDirectory = Path.GetDirectoryName(redirectFileName);
+                        if (!Directory.Exists(redirectDirectory))
+                            Directory.CreateDirectory(redirectDirectory);
+                        File.WriteAllBytes(redirectFileName, encodedText);
+                    }
+
+                    File.WriteAllText(tempFileName, post.Content);
+                    await PandocInstance.Convert<HtmlIn, RstOut>(tempFileName, targetFileName);
+                    File.Delete(tempFileName);
+                    var convertedContent=File.ReadAllText(targetFileName);
+
+                    var postStringBuilder = new StringBuilder();
+                    postStringBuilder.AppendLine(post.Title);
+                    Debug.Assert(post.Content!=null && post.Content.Length > 0);
+                    Debug.Assert(post.Title != null && post.Title.Length>0);
+                    postStringBuilder.AppendLine(new string('=',post.Title.Length*2));
+                    if (post.PubDate != null)
+                    {
+                        postStringBuilder.AppendLine(string.Format(".. post:: {0}, {1}, {2}", post.PubDate.Value.Day
+                            , post.PubDate.Value.ToString("MMM"), post.PubDate.Value.Year));
+                        if (post.PostTags != null && post.PostTags.Count > 0)
+                        {
+
+                            postStringBuilder.AppendLine(string.Format("   :tags: {0}", string.Join(',', post.PostTags)));
+                        }
+                        if (post.PostCategories != null && post.PostCategories.Count > 0)
+                        {
+                            postStringBuilder.AppendLine(string.Format("   :category: {0}", string.Join(',', post.PostCategories)));
+                        }
+                        if (post.Creator != null)
+                        {
+                            postStringBuilder.AppendLine("   :author: "+ post.Creator);
+                        }
+                        postStringBuilder.AppendLine("   :nocomments:");
+                    }
+                    postStringBuilder.AppendLine();
+                    postStringBuilder.Append(convertedContent);
+                    encodedText = Encoding.UTF8.GetBytes(postStringBuilder.ToString());
+                    File.WriteAllBytes(targetFileName, encodedText);
+
+                    break;
+            }
+
+        }
+
+        private string GetUniqueFileName(string targetPath, string slug, string extension)
+        {
+            int revision = 0;
+            string? testFileName;
+            do
+            {
+                if (revision == 0)
+                {
+                    testFileName = Path.Combine(targetPath, slug);
+                    testFileName = Path.Combine(testFileName , "index"+extension);
+                }
+                else
+                {
+                    testFileName = Path.Combine(targetPath, string.Format("{0}_{1}", slug, revision));
+                    testFileName = Path.Combine(testFileName, "index" + extension);
+                }
+            }
+            while (File.Exists(testFileName));
+            return testFileName;
         }
     }
 }

@@ -1,12 +1,11 @@
 ﻿using Config.Net;
 using Pandoc;
-using System.Text.Encodings.Web;
 
-namespace WordPressXmlToStaticFile
+namespace WordPressXmlToJekykll
 {
     internal class Program
     {
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
             string jsonFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WordPressXmlToStaticFile");
             if (!Directory.Exists(jsonFilePath))
@@ -19,35 +18,18 @@ namespace WordPressXmlToStaticFile
                 .UseJsonFile(jsonFilePath)
                 .UseCommandLineArgs()
                 .Build();
-            settings.InputFile=PromptForTextValue("Enter Path for the XML file exported by WordPress (Press Enter for default):[{0}]", settings.InputFile);
-            settings.OutputFolder= PromptForTextValue("Enter Path for the output folder(Press Enter for default):[{0}]", settings.OutputFolder);
+            settings.InputFile = PromptForTextValue("Enter Path for the XML file exported by WordPress (Press Enter for default):[{0}]", settings.InputFile);
+            settings.OutputFolder = PromptForTextValue("Enter Path for the output folder(Press Enter for default):[{0}]", settings.OutputFolder);
             settings.PanDocPath = PromptForTextValue("Enter Path for the pandoc executable (maybe c:\\Program Files\\Pandoc\\, Press Enter for default):[{0}]", settings.PanDocPath);
-            settings.CreateYearFolders = PromptForBooleanValue("Create folders for years?[y/n](Press Enter for default):[{0}]", settings.CreateYearFolders);
-            settings.CreateMonthFolders= PromptForBooleanValue("Create folders for months?[y/n](Press Enter for default):[{0}]", settings.CreateMonthFolders);
-            settings.CreateDayFolders = PromptForBooleanValue("Create folders for days?[y/n](Press Enter for default):[{0}]", settings.CreateDayFolders);
-            
-            settings.OutputFormat = PromptForNumber("Output Format? 1: html, 2: github-favored markdown 3:rst (Press Enter for default):[{0}]", settings.OutputFormat);
-            if (settings.OutputFormat == 3)
-            {
-                settings.CreateRedirectForABlog = PromptForBooleanValue("Create redirect pages and blogs folder for ABlog?[y/n](Press Enter for default):[{0}]", settings.CreateRedirectForABlog);
-                if (settings.CreateRedirectForABlog)
-                {
-                    settings.SphinixSourceFolder = PromptForTextValue("Sphinix Source Path (maybe docs, Press Enter for default):[{0}]", settings.SphinixSourceFolder);
-                    settings.SphinixBuildFolder = PromptForTextValue("Sphinix Build Path (maybe build\\html, Press Enter for default):[{0}]", settings.SphinixBuildFolder);
-                }
-            }
-            
+            settings.DownloadImage= PromptForTextValue("Download image?[y/n], Press Enter for default):[{0}]", settings.DownloadImage);
             PandocEngine pandocEngine = new PandocEngine(settings.PanDocPath);
-
-            WordPressXmlToStaticFile wpXmlToStaticFile = new WordPressXmlToStaticFile(settings, pandocEngine);
-            await wpXmlToStaticFile.Convert();
-
-
+            WordPressXmlToJekykll wpXmlToJekykll = new WordPressXmlToJekykll(settings, pandocEngine);
+            await WordPressXmlToJekykll.Convert();
         }
         static string PromptForTextValue(string prompt, string defaultValue)
         {
-            Console.WriteLine(string.Format(prompt,defaultValue));
-            var result= Console.ReadLine();
+            Console.WriteLine(string.Format(prompt, defaultValue));
+            var result = Console.ReadLine();
             if (string.IsNullOrWhiteSpace(result))
             {
                 return defaultValue;
@@ -56,7 +38,7 @@ namespace WordPressXmlToStaticFile
         }
         static bool PromptForBooleanValue(string prompt, bool defaultValue)
         {
-            Console.WriteLine(string.Format(prompt, defaultValue?"y":"n"));
+            Console.WriteLine(string.Format(prompt, defaultValue ? "y" : "n"));
             var result = Console.ReadLine();
             if (string.IsNullOrWhiteSpace(result))
             {
@@ -66,8 +48,8 @@ namespace WordPressXmlToStaticFile
             {
                 case "true":
                     return true;
-                    case "false":
-                        return false;
+                case "false":
+                    return false;
                 case "y":
                 case "t":
                     return true;

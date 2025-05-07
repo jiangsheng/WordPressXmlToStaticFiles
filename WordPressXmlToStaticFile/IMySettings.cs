@@ -23,5 +23,9 @@ namespace WordPressXmlToStaticFile
 
         [Option(DefaultValue = "1")]
         int OutputFormat { get; set; }
+
+        bool CreateRedirectForABlog { get; set; }
+        string SphinixSourceFolder { get; set; }
+        string SphinixBuildFolder { get; set; }
     }
 }
