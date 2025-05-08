@@ -132,9 +132,25 @@ namespace WordPressXmlToStaticFile
                     WriteTagRedirect(tag);
                 }
             }
+            if (wordPressXml.Categories != null)
+            {
+                foreach (var category in wordPressXml.Categories)
+                {
+                    WriteCategoryRedirect(category);
+                }
+            }
+        }
+
+        private void WriteCategoryRedirect(WordPressCategory category)
+        {
+            WriteRedirect("category", category.NiceName);
         }
 
         private void WriteTagRedirect(WordPressTag tag)
+        {
+            WriteRedirect("tag", tag.Slug);
+        }
+        private void WriteRedirect(string subFolder, string? slug)
         {
             if (Settings.CreateRedirectForABlog)
             {
@@ -144,16 +160,18 @@ namespace WordPressXmlToStaticFile
                 {
                     tagBuildFolder = Path.Combine(tagBuildFolder, Settings.SphinixBuildFolder);
                 }
-                tagBuildFolder = Path.Combine(tagBuildFolder, "blogs\\tag");
-                var targetTagHtmlFileName = Path.Combine(tagBuildFolder, tag.Slug+".html");
-                var sourceRedirectFileName = Path.Combine(tagRedirectOutputFolder, "tag");
-                sourceRedirectFileName = Path.Combine(sourceRedirectFileName, tag.Slug);
-                if(!Directory.Exists(sourceRedirectFileName))
-                    Directory.CreateDirectory(sourceRedirectFileName);
-                sourceRedirectFileName = Path.Combine(sourceRedirectFileName,"index.html");
+                tagBuildFolder = Path.Combine(tagBuildFolder, "blogs");
+                tagBuildFolder = Path.Combine(tagBuildFolder, subFolder);
+
+                var targetTagHtmlFileName = Path.Combine(tagBuildFolder, slug + ".html");
+                var sourceRedirectFolderName = Path.Combine(tagRedirectOutputFolder, subFolder);
+                sourceRedirectFolderName = Path.Combine(sourceRedirectFolderName, slug);
+                if (!Directory.Exists(sourceRedirectFolderName))
+                    Directory.CreateDirectory(sourceRedirectFolderName);
+                var sourceRedirectFileName = Path.Combine(sourceRedirectFolderName, "index.html");
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine("<!doctype html>\r\n<html>\r\n<head>");
-                var redirectPath = Path.GetRelativePath(sourceRedirectFileName, targetTagHtmlFileName);
+                var redirectPath = Path.GetRelativePath(sourceRedirectFolderName, targetTagHtmlFileName);
                 sb.AppendLine("<meta http-equiv=\"refresh\" content=\"0; url=" + redirectPath.Replace('\\', '/') + "\">");
                 sb.AppendLine("</head>\r\n<body>\t\r\n</body>\r\n</html>");
                 var encodedText = Encoding.UTF8.GetBytes(sb.ToString());
