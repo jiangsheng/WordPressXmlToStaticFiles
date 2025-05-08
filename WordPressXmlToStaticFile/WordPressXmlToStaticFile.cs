@@ -125,6 +125,40 @@ namespace WordPressXmlToStaticFile
             {
                 Console.WriteLine("No items found in the XML file.");
             }
+            if (wordPressXml.Tags != null)
+            {
+                foreach (var tag in wordPressXml.Tags)
+                {
+                    WriteTagRedirect(tag);
+                }
+            }
+        }
+
+        private void WriteTagRedirect(WordPressTag tag)
+        {
+            if (Settings.CreateRedirectForABlog)
+            {
+                var tagRedirectOutputFolder = Settings.OutputFolder;
+                var tagBuildFolder = Settings.OutputFolder;
+                if (!string.IsNullOrEmpty(Settings.SphinixBuildFolder))
+                {
+                    tagBuildFolder = Path.Combine(tagBuildFolder, Settings.SphinixBuildFolder);
+                }
+                tagBuildFolder = Path.Combine(tagBuildFolder, "blogs\\tag");
+                var targetTagHtmlFileName = Path.Combine(tagBuildFolder, tag.Slug+".html");
+                var sourceRedirectFileName = Path.Combine(tagRedirectOutputFolder, "tag");
+                sourceRedirectFileName = Path.Combine(sourceRedirectFileName, tag.Slug);
+                if(!Directory.Exists(sourceRedirectFileName))
+                    Directory.CreateDirectory(sourceRedirectFileName);
+                sourceRedirectFileName = Path.Combine(sourceRedirectFileName,"index.html");
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("<!doctype html>\r\n<html>\r\n<head>");
+                var redirectPath = Path.GetRelativePath(sourceRedirectFileName, targetTagHtmlFileName);
+                sb.AppendLine("<meta http-equiv=\"refresh\" content=\"0; url=" + redirectPath.Replace('\\', '/') + "\">");
+                sb.AppendLine("</head>\r\n<body>\t\r\n</body>\r\n</html>");
+                var encodedText = Encoding.UTF8.GetBytes(sb.ToString());
+                File.WriteAllBytes(sourceRedirectFileName, encodedText);
+            }
         }
 
         private void DownloadAttachment(string fromUrl, string toFile)
@@ -244,7 +278,9 @@ namespace WordPressXmlToStaticFile
                             Directory.CreateDirectory(redirectDirectory);
                         File.WriteAllBytes(redirectFileName, encodedText);
                     }
-
+                    var targetFileNameDirectory = Path.GetDirectoryName(targetFileName);
+                    if (!Directory.Exists(targetFileNameDirectory))
+                        Directory.CreateDirectory(targetFileNameDirectory);
                     File.WriteAllText(tempFileName, post.Content);
                     await PandocInstance.Convert<HtmlIn, RstOut>(tempFileName, targetFileName);
                     File.Delete(tempFileName);
