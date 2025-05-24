@@ -5,6 +5,8 @@ VisualStudioVersion = 17.13.35828.75
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WordPressXmlToStaticFile", "WordPressXmlToStaticFile.csproj", "{0008EC36-F033-48F4-9990-ECB951DF53F2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BatchFixes", "..\BatchFixes\BatchFixes.csproj", "{EC2E7BC7-48E8-41B1-9081-B2DCF330231A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{0008EC36-F033-48F4-9990-ECB951DF53F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0008EC36-F033-48F4-9990-ECB951DF53F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0008EC36-F033-48F4-9990-ECB951DF53F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC2E7BC7-48E8-41B1-9081-B2DCF330231A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC2E7BC7-48E8-41B1-9081-B2DCF330231A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC2E7BC7-48E8-41B1-9081-B2DCF330231A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC2E7BC7-48E8-41B1-9081-B2DCF330231A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

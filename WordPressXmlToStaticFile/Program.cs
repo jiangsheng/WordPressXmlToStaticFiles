@@ -36,7 +36,6 @@ namespace WordPressXmlToStaticFile
                     settings.SphinixBuildFolder = PromptForTextValue("Sphinix Build Path (maybe build\\html, Press Enter for default):[{0}]", settings.SphinixBuildFolder);
                 }
             }
-            
             PandocEngine pandocEngine = new PandocEngine(settings.PanDocPath);
 
             WordPressXmlToStaticFile wpXmlToStaticFile = new WordPressXmlToStaticFile(settings, pandocEngine);
